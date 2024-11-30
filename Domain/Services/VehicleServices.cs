@@ -31,7 +31,7 @@ public class VehicleServices : IVehicleServices
         return db.Vehicles.Find(id);
     }
 
-    public List<Vehicle> GetAll(int page = 1, string? name = null, string? brand = null)
+    public List<Vehicle> GetAll(int? page = 1, string? name = null, string? brand = null)
     {
         var query = db.Vehicles.AsQueryable();
         if(!string.IsNullOrEmpty(name)) 
@@ -41,7 +41,11 @@ public class VehicleServices : IVehicleServices
 
         var itemsPerPage = 10;
 
-        query = query.Skip((page - 1) * itemsPerPage).Take(itemsPerPage);
+    if(page != null)
+    {
+        query = query.Skip(((int)page - 1) * itemsPerPage).Take(itemsPerPage);
+
+    }
 
         return query.ToList();
     }
