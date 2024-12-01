@@ -15,7 +15,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IAdminServices, AdminServices>();
 builder.Services.AddScoped<IVehicleServices, VehicleServices>();
-builder.Services.AddDbContext<DbContextApp>(options => {
+builder.Services.AddDbContext<DbContextApp>(options =>
+{
     options.UseMySql(
         builder.Configuration.GetConnectionString("mysql"),
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("mysql"))
@@ -27,14 +28,42 @@ var app = builder.Build();
 app.MapGet("/", () => Results.Json(new Home())).WithTags("Home");
 
 #region  admin
-app.MapPost("/admins/login", ([FromBody] LoginDTO loginDTO, IAdminServices adminServices) => {
+app.MapPost("/admins/login", ([FromBody] LoginDTO loginDTO, IAdminServices adminServices) =>
+{
     return adminServices.Login(loginDTO.Email, loginDTO.Password) != null ? Results.Ok("Login successfully") : Results.Unauthorized();
 }).WithTags("Admin");
 #endregion
 
 #region  vehicles
-app.MapPost("/vehicles/", ([FromBody] VehicleDTO vehicleDTO, IVehicleServices vehicleServices) => {
-    Vehicle vehicle = new Vehicle {
+    ValidateErrors ValidateVehicleDTO(VehicleDTO vehicleDTO) 
+    {
+        ValidateErrors validateErrors = new ValidateErrors();
+        if (string.IsNullOrEmpty(vehicleDTO.Name))
+        {
+            validateErrors.Messages.Add("Nome não pode ser vazia");
+        }
+        if (string.IsNullOrEmpty(vehicleDTO.Brand))
+        {
+            validateErrors.Messages.Add("Brand não pode ser vazia");
+        }
+        if (vehicleDTO.Year < 1950)
+        {
+            validateErrors.Messages.Add("Year deve ser igual ou maior que 1950");
+        }
+        return validateErrors;
+    }
+
+app.MapPost("/vehicles/", ([FromBody] VehicleDTO vehicleDTO, IVehicleServices vehicleServices) =>
+{
+
+    var validateErrors = ValidateVehicleDTO(vehicleDTO);
+
+    if (validateErrors.Messages.Count > 0)
+    {
+        return Results.BadRequest(validateErrors);
+    }
+    Vehicle vehicle = new Vehicle
+    {
         Name = vehicleDTO.Name,
         Brand = vehicleDTO.Brand,
         Year = vehicleDTO.Year
@@ -45,20 +74,30 @@ app.MapPost("/vehicles/", ([FromBody] VehicleDTO vehicleDTO, IVehicleServices ve
     return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
 }).WithTags("Vehicles");
 
-app.MapGet("/vehicles/", ([FromQuery] int? page, IVehicleServices vehicleServices) => {
+app.MapGet("/vehicles/", ([FromQuery] int? page, IVehicleServices vehicleServices) =>
+{
     return vehicleServices.GetAll(page);
 }).WithTags("Vehicles");
 
-app.MapGet("/vehicles/{id}", (int id, IVehicleServices vehicleServices) => {
+app.MapGet("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
+{
     return vehicleServices.FindById(id)
         is Vehicle vehicle
         ? Results.Ok(vehicle)
         : Results.NotFound();
 }).WithTags("Vehicles");
 
-app.MapPut("/vehicles/{id}", ([FromRoute]int id, [FromBody] VehicleDTO vehicleDTO, IVehicleServices vehicleServices) => {
+app.MapPut("/vehicles/{id}", ([FromRoute] int id, [FromBody] VehicleDTO vehicleDTO, IVehicleServices vehicleServices) =>
+{
+    var validateErrors = ValidateVehicleDTO(vehicleDTO);
+
+    if (validateErrors.Messages.Count > 0)
+    {
+        return Results.BadRequest(validateErrors);
+    }
+
     var vehicle = vehicleServices.FindById(id);
-    if(vehicle is null) return Results.NotFound();
+    if (vehicle is null) return Results.NotFound();
     vehicle.Name = vehicleDTO.Name;
     vehicle.Brand = vehicleDTO.Brand;
     vehicle.Year = vehicleDTO.Year;
@@ -66,8 +105,9 @@ app.MapPut("/vehicles/{id}", ([FromRoute]int id, [FromBody] VehicleDTO vehicleDT
     return Results.NoContent();
 }).WithTags("Vehicles");
 
-app.MapDelete("/vehicles/{id}", (int id, IVehicleServices vehicleServices) => {
-    if(vehicleServices.FindById(id) is Vehicle vehicle)
+app.MapDelete("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
+{
+    if (vehicleServices.FindById(id) is Vehicle vehicle)
     {
         vehicleServices.Delete(vehicle);
         return Results.NoContent();
