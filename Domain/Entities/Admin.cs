@@ -18,5 +18,4 @@ public class Admin
 
     [StringLength(10)]
     public string Role {get; set;} = default!;
-    
 }

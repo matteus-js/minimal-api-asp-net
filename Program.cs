@@ -32,6 +32,62 @@ app.MapPost("/admins/login", ([FromBody] LoginDTO loginDTO, IAdminServices admin
 {
     return adminServices.Login(loginDTO.Email, loginDTO.Password) != null ? Results.Ok("Login successfully") : Results.Unauthorized();
 }).WithTags("Admin");
+
+app.MapPost("/admins", ([FromBody] AdminDTO adminDTO, IAdminServices adminServices) =>
+{
+    ValidateErrors validateErrors = new ValidateErrors{
+        Messages = new List<string>()
+    };
+        if (string.IsNullOrEmpty(adminDTO.Email))
+        {
+            validateErrors.Messages.Add("\"email\" não pode ser vazio.");
+        }
+        if (string.IsNullOrEmpty(adminDTO.Password))
+        {
+            validateErrors.Messages.Add("\"password\" não pode ser vazia.");
+        }
+        if (adminDTO.Role != null && (adminDTO.Role != "admin" || adminDTO.Role != "editor"))
+        {
+            validateErrors.Messages.Add("\"role\" deve ser \"admin\" ou \"editor\".");
+        }
+        if(validateErrors.Messages.Count > 0) return Results.BadRequest(validateErrors);
+    Admin admin = new()
+    {
+        Email = adminDTO.Email,
+        Password = adminDTO.Password,
+        Role = adminDTO.Role ?? "editor"
+    };
+    adminServices.Create(admin);
+
+    return Results.Created($"/admins/{admin.Id}", new AdminModelView{Id = admin.Id, Email = admin.Email, Role = admin.Role});
+}).WithTags("Admin");
+
+app.MapGet("/admins/{id}", ([FromRoute] int id , IAdminServices adminServices) =>
+{
+    return adminServices.FindById(id)
+        is Admin admin
+        ? Results.Ok(new AdminModelView{Id = admin.Id, Email = admin.Email, Role = admin.Role})
+        : Results.NotFound();
+}).WithTags("Admin");
+
+app.MapGet("/admins", ([FromQuery] int? page , IAdminServices adminServices) =>
+{
+    List<Admin> admins = adminServices.GetAll();
+    List<AdminModelView> listAdminModelView = [];
+    foreach (var admin in admins)
+    { 
+      listAdminModelView.Add(
+        new AdminModelView 
+        {
+            Id = admin.Id,
+            Email = admin.Email,
+            Role = admin.Role
+        }
+      );
+    }
+    return Results.Ok(listAdminModelView);
+    
+}).WithTags("Admin");
 #endregion
 
 #region  vehicles
