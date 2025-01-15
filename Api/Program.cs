@@ -178,6 +178,10 @@ app.MapGet("/admins", ([FromQuery] int? page , IAdminServices adminServices) =>
 #region  vehicles
     ValidateErrors ValidateVehicleDTO(VehicleDTO vehicleDTO) 
     {
+        if (vehicleDTO == null)
+        {
+            throw new ArgumentNullException(nameof(vehicleDTO), "O objeto VehicleDTO não pode ser nulo.");
+        }
         ValidateErrors validateErrors = new ValidateErrors();
         if (string.IsNullOrEmpty(vehicleDTO.Name))
         {
@@ -239,6 +243,7 @@ app.MapGet("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
 
 app.MapPut("/vehicles/{id}", ([FromRoute] int id, [FromBody] VehicleDTO vehicleDTO, IVehicleServices vehicleServices) =>
 {
+    Console.WriteLine(vehicleDTO != null ? "vehicleDTO está inicializado" : "vehicleDTO é nulo");
     var validateErrors = ValidateVehicleDTO(vehicleDTO);
 
     if (validateErrors.Messages.Count > 0)
