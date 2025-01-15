@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -79,7 +80,9 @@ string GenerateTokenJwt(Admin admin) {
 
     var claims = new List<Claim>() {
         new Claim("Email", admin.Email),
-        new Claim("Role", admin.Role)
+        new Claim("Role", admin.Role),
+        new Claim(ClaimTypes.Role, admin.Role)
+
     };
 
     var token = new JwtSecurityToken(
@@ -133,7 +136,10 @@ app.MapPost("/admins", ([FromBody] AdminDTO adminDTO, IAdminServices adminServic
     adminServices.Create(admin);
 
     return Results.Created($"/admins/{admin.Id}", new AdminModelView{Id = admin.Id, Email = admin.Email, Role = admin.Role});
-}).RequireAuthorization().WithTags("Admin");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin"})
+    .WithTags("Admin");
 
 app.MapGet("/admins/{id}", ([FromRoute] int id , IAdminServices adminServices) =>
 {
@@ -141,7 +147,10 @@ app.MapGet("/admins/{id}", ([FromRoute] int id , IAdminServices adminServices) =
         is Admin admin
         ? Results.Ok(new AdminModelView{Id = admin.Id, Email = admin.Email, Role = admin.Role})
         : Results.NotFound();
-}).RequireAuthorization().WithTags("Admin");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin"})
+    .WithTags("Admin");
 
 app.MapGet("/admins", ([FromQuery] int? page , IAdminServices adminServices) =>
 {
@@ -160,7 +169,10 @@ app.MapGet("/admins", ([FromQuery] int? page , IAdminServices adminServices) =>
     }
     return Results.Ok(listAdminModelView);
     
-}).RequireAuthorization().WithTags("Admin");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin"})
+    .WithTags("Admin");
 #endregion
 
 #region  vehicles
@@ -201,12 +213,18 @@ app.MapPost("/vehicles/", ([FromBody] VehicleDTO vehicleDTO, IVehicleServices ve
     vehicleServices.Create(vehicle);
 
     return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
-}).RequireAuthorization().WithTags("Vehicles");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin"})
+    .WithTags("Vehicles");
 
 app.MapGet("/vehicles/", ([FromQuery] int? page, IVehicleServices vehicleServices) =>
 {
     return vehicleServices.GetAll(page);
-}).RequireAuthorization().WithTags("Vehicles");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin, editor"})
+    .WithTags("Vehicles");
 
 app.MapGet("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
 {
@@ -214,7 +232,10 @@ app.MapGet("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
         is Vehicle vehicle
         ? Results.Ok(vehicle)
         : Results.NotFound();
-}).RequireAuthorization().WithTags("Vehicles");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin, editor"})
+    .WithTags("Vehicles");
 
 app.MapPut("/vehicles/{id}", ([FromRoute] int id, [FromBody] VehicleDTO vehicleDTO, IVehicleServices vehicleServices) =>
 {
@@ -232,7 +253,10 @@ app.MapPut("/vehicles/{id}", ([FromRoute] int id, [FromBody] VehicleDTO vehicleD
     vehicle.Year = vehicleDTO.Year;
     vehicleServices.Update(vehicle);
     return Results.NoContent();
-}).RequireAuthorization().WithTags("Vehicles");
+})
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin, editor"})
+    .WithTags("Vehicles");
 
 app.MapDelete("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
 {
@@ -243,7 +267,10 @@ app.MapDelete("/vehicles/{id}", (int id, IVehicleServices vehicleServices) =>
     }
 
     return Results.NotFound();
-}).RequireAuthorization().WithTags("Vehicles");
+})  
+    .RequireAuthorization()
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "admin"})
+    .WithTags("Vehicles");
 
 #endregion
 
