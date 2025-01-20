@@ -3,7 +3,7 @@ using MinimalApi.Domain.Entities;
 namespace Test.Domain.Entities;
 
 [TestClass]
-public class UnitTest1
+public class AdminTest
 {
     [TestMethod]
     public void TestGetSetProps()
